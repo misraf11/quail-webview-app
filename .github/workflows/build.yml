@@ -59,3 +59,16 @@ jobs:
           git add build.log
           git commit -m "ci log ${{ github.run_id }}"
           git push -f origin ci-logs
+
+      - name: Publish APK to git branch
+        if: success()
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk /tmp/app-debug.apk
+          git config user.name "ci-log-bot"
+          git config user.email "ci-log-bot@users.noreply.github.com"
+          git checkout --orphan apk-output
+          git rm -rf . >/dev/null 2>&1 || true
+          cp /tmp/app-debug.apk ./app-debug.apk
+          git add app-debug.apk
+          git commit -m "apk build ${{ github.run_id }}"
+          git push -f origin apk-output
