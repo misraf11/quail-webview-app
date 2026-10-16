@@ -5,6 +5,9 @@ on:
     branches: [ "main" ]
   workflow_dispatch: {}
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,10 +35,23 @@ jobs:
           gradle-version: '8.7'
 
       - name: Build debug APK
-        run: gradle assembleDebug --no-daemon
+        run: gradle assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: quail-app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Publish log on failure
+        if: failure()
+        run: |
+          cp build.log /tmp/build.log
+          git config user.name "ci-log-bot"
+          git config user.email "ci-log-bot@users.noreply.github.com"
+          git checkout --orphan ci-logs
+          git rm -rf . >/dev/null 2>&1 || true
+          cp /tmp/build.log ./build.log
+          git add build.log
+          git commit -m "ci log ${{ github.run_id }}"
+          git push -f origin ci-logs
